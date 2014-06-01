@@ -49,16 +49,22 @@ public class SystemMonitor {
      *
      * @throws IOException
      */
-    public void startMonitor() throws IOException {
+    public void startMonitor() {
         /*timing for status update is a bit of a hack, should spawn a separate thread with timeout in case
           of processing across the update interval, need to sync on the output object to avoid contention*/
         long lastStatusUpdateTime = Calendar.getInstance().getTimeInMillis();
         for (; ; ) {
             WatchKey key = watcher.poll();
             //handle any events that have occurred in the directory
-            if (!handleWatchEvents(key)) {
-                watcher.close();
-                break;
+            try {
+                if (!handleWatchEvents(key)) {
+                    watcher.close();
+                    break;
+                }
+            } catch (IOException e) {
+                //NOTE: real development should be logging as opposed to dumping to command line
+                System.out.println("ERROR: Failed to handle WatchEvents");
+                e.printStackTrace();
             }
 
             //determine whether to send status output
