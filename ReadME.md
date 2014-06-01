@@ -9,7 +9,9 @@ IntelliJ module files are included and can be used with the Community Edition fo
 ### Start the Application
 To run the application from the command line execute:
 
-```mvn clean compile exec:java```
+```mvn clean compile exec:java -Dexec.arguments="<DIRECTORY_PATH>"```
+
+The ```-Dexec``` argument is optional, if not specified the monitor will watch the current directory.
 
 ### Run the Tests
 To run all the tests from the command line execute:
