@@ -7,8 +7,7 @@ import java.nio.file.Paths;
 
 public class Main {
     public static void main(String[] args) {
-        String path = args[0];
-        Path directory = Paths.get(path == null ? "./" : path);
+        Path directory = Paths.get(args.length > 0 ? args[0] : "./");
         try {
             SystemMonitor monitor = new SystemMonitor(directory, null);
             System.out.println("Monitoring files created at: " + directory.toString());
