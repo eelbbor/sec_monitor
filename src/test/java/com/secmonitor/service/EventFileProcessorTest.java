@@ -21,9 +21,6 @@ import static com.secmonitor.TestUtil.randomName;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
-/**
- * Created by rlee on 5/31/14.
- */
 @Test
 public class EventFileProcessorTest {
     private EventFileProcessor fileProcessor;

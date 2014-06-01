@@ -29,9 +29,6 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
-/**
- * Created by rlee on 5/31/14.
- */
 @Test
 public class SystemMonitorTest {
     private SystemMonitor monitor;

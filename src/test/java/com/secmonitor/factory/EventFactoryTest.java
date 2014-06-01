@@ -11,9 +11,6 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by rlee on 6/1/14.
- */
 @Test
 public class EventFactoryTest {
     private EventFactory factory = new EventFactory();

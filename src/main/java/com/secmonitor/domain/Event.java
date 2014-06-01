@@ -1,8 +1,5 @@
 package com.secmonitor.domain;
 
-/**
- * Created by rlee on 5/31/14.
- */
 public abstract class Event {
     private String date;
 

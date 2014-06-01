@@ -7,16 +7,20 @@ import com.secmonitor.domain.DoorEvent;
 import com.secmonitor.domain.Event;
 import com.secmonitor.domain.ImgEvent;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created by rlee on 6/1/14.
+ * The EventFactory allows for creating an Event object based off of a File containing a JSON definition
+ * of an Event.
  */
 public class EventFactory {
     public static final String TYPE_KEY = "type";
     public static final String DATE_KEY = "date";
 
+    private final ObjectMapper mapper = new ObjectMapper();
     public static final Map<String, Class> EVENT_TYPE_CLASS_MAP = new HashMap<String, Class>() {
         {
             put(AlarmEvent.EVENT_TYPE, AlarmEvent.class);
@@ -25,12 +29,29 @@ public class EventFactory {
         }
     };
 
-    public Event newEventObject(Map<String, Object> eventObjectMap) {
+    /**
+     * Creates an Event object based on an event file
+     * @param file File that contains JSON defining and event
+     * @return Event object that correlates with the event type
+     * @throws IOException
+     */
+    public Event newEventObject(File file) throws IOException {
+        Map<String,Object> eventObjectMap = mapper.readValue(file, Map.class);
+        return newEventObject(eventObjectMap);
+    }
+
+    /**
+     * Creates an Event object based on a map of parameters derived from a JSON object
+     * @param eventObjectMap Map of properties defining an Event
+     * @return
+     */
+    protected Event newEventObject(Map<String, Object> eventObjectMap) {
+        //decorate the keys so they are all lower case to enable Domain POJO serialization with jackson
         Map<String,Object> decoratedMap = decorateEventObjectMap(eventObjectMap);
         String type = (String) decoratedMap.get(TYPE_KEY);
         Class typeClass = EVENT_TYPE_CLASS_MAP.get(type);
 
-        ObjectMapper mapper = new ObjectMapper();
+        //ignore extra fields, refactoring discussion on logging unknown fields
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         return (Event)mapper.convertValue(decoratedMap, typeClass);
     }

@@ -1,7 +1,5 @@
 package com.secmonitor.service;
 
-import com.secmonitor.domain.Event;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -9,14 +7,13 @@ import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.util.Calendar;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 
 /**
- * Created by rlee on 5/31/14.
  * Monitors a directory based on the provided Path using a WatchService.  The monitor only keys
- * off of newly created files in the directory.
+ * off of newly created files in the directory.  The system status is also presented based on the
+ * defined interval or a default of 1 second.
  */
 public class SystemMonitor {
     private WatchService watcher;
@@ -50,9 +47,8 @@ public class SystemMonitor {
      * @throws IOException
      */
     public void startMonitor() {
-        /*timing for status update is a bit of a hack, should spawn a separate thread with timeout in case
-          of processing across the update interval, need to sync on the output object to avoid contention*/
-        long lastStatusUpdateTime = Calendar.getInstance().getTimeInMillis();
+        //spawn a thread to ensure status is reported on the interval and is tolerant to event processing over time boundaries
+        new Thread(new StatusUpdateRunnable(processor, msOutputInterval)).start();
         for (; ; ) {
             WatchKey key = watcher.poll();
             //handle any events that have occurred in the directory
@@ -65,13 +61,6 @@ public class SystemMonitor {
                 //NOTE: real development should be logging as opposed to dumping to command line
                 System.out.println("ERROR: Failed to handle WatchEvents");
                 e.printStackTrace();
-            }
-
-            //determine whether to send status output
-            long currentTime = Calendar.getInstance().getTimeInMillis();
-            if (currentTime - lastStatusUpdateTime >= msOutputInterval) {
-                outputStatus();
-                lastStatusUpdateTime = currentTime;
             }
         }
     }
@@ -88,18 +77,35 @@ public class SystemMonitor {
             if (kind == ENTRY_CREATE) {
                 WatchEvent<Path> ev = (WatchEvent<Path>) watchEvent;
                 File newFile = directory.resolve(ev.context()).toFile();
-                Event event = processor.processFile(newFile);
+                processor.processFile(newFile);
             }
         }
         //return the result of a reset on the key
         return key.reset();
     }
 
-    protected void outputStatus() {
-        System.out.println(processor.getStatusMessage());
-    }
-
     protected long getMsOutputInterval() {
         return msOutputInterval;
+    }
+
+    private class StatusUpdateRunnable implements Runnable {
+        private final long msOutputInterval;
+        private EventFileProcessor processor;
+
+        protected StatusUpdateRunnable(EventFileProcessor processor, long msOutputInterval) {
+            this.processor = processor;
+            this.msOutputInterval = msOutputInterval;
+        }
+
+        @Override
+        public void run() {
+            System.out.println(processor.getStatusMessage());
+            try {
+                Thread.sleep(msOutputInterval);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            run();
+        }
     }
 }
