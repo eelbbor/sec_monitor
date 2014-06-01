@@ -8,25 +8,28 @@ public class ImgEvent extends Event {
     private String bytes;
     private long size;
 
-    private ImgEvent(String date, String bytes, long size) {
+    public ImgEvent() {}
+
+    public ImgEvent(String date, String bytes, long size) {
         super(date);
         this.bytes = bytes;
         this.size = size;
-    }
-
-    public static ImgEvent getEvent(String json) {
-        return new ImgEvent(null, null, -1);
     }
 
     public String getBytes() {
         return bytes;
     }
 
-    public byte[] getByteArray() {
-        return bytes.getBytes();
+    public void setBytes(String bytes) {
+        this.bytes = bytes;
     }
 
     public long getSize() {
         return size;
+    }
+
+    @Override
+    public String getType() {
+        return EVENT_TYPE;
     }
 }

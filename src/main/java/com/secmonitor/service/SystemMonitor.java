@@ -1,6 +1,6 @@
 package com.secmonitor.service;
 
-import org.json.simple.parser.ParseException;
+import com.secmonitor.domain.Event;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +20,7 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
  */
 public class SystemMonitor {
     private WatchService watcher;
-    private FileProcessor processor;
+    private EventFileProcessor processor;
 
     private Path directory;
     private long msOutputInterval = 1000;
@@ -37,7 +37,7 @@ public class SystemMonitor {
         this.directory = directory;
         this.directory.register(watcher, ENTRY_CREATE);
 
-        processor = new FileProcessor();
+        processor = new EventFileProcessor();
         if (msOutputInterval != null && msOutputInterval > 0) {
             this.msOutputInterval = msOutputInterval;
         }
@@ -49,7 +49,9 @@ public class SystemMonitor {
      *
      * @throws IOException
      */
-    public void startMonitor() throws IOException, ParseException {
+    public void startMonitor() throws IOException {
+        /*timing for status update is a bit of a hack, should spawn a separate thread with timeout in case
+          of processing across the update interval, need to sync on the output object to avoid contention*/
         long lastStatusUpdateTime = Calendar.getInstance().getTimeInMillis();
         for (; ; ) {
             WatchKey key = watcher.poll();
@@ -68,19 +70,19 @@ public class SystemMonitor {
         }
     }
 
-    protected boolean handleWatchEvents(WatchKey key) throws IOException, ParseException {
+    protected boolean handleWatchEvents(WatchKey key) throws IOException {
         //if key is null there are no events so simply return
         if (key == null) {
             return true;
         }
         //process the events that have occurred
-        for (WatchEvent<?> event : key.pollEvents()) {
-            WatchEvent.Kind<?> kind = event.kind();
+        for (WatchEvent<?> watchEvent : key.pollEvents()) {
+            WatchEvent.Kind<?> kind = watchEvent.kind();
             //only process create events
             if (kind == ENTRY_CREATE) {
-                WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                WatchEvent<Path> ev = (WatchEvent<Path>) watchEvent;
                 File newFile = directory.resolve(ev.context()).toFile();
-                processor.processFile(newFile);
+                Event event = processor.processFile(newFile);
             }
         }
         //return the result of a reset on the key
@@ -88,8 +90,7 @@ public class SystemMonitor {
     }
 
     protected void outputStatus() {
-        System.out.println("outputStatus: " + Calendar.getInstance().getTimeInMillis() +
-                ", avgTime: " + processor.getAvgProcessingTime());
+        System.out.println(processor.getStatusMessage());
     }
 
     protected long getMsOutputInterval() {

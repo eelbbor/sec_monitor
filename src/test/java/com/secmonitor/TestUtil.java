@@ -1,5 +1,7 @@
 package com.secmonitor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.File;
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -15,7 +17,7 @@ public class TestUtil {
     }
 
     public static File makeTestDirectory() throws Exception {
-        File testDir = new File("./test/" + randomName());
+        File testDir = new File("src/test/dir_" + randomName());
         try {
             if (!testDir.exists()) {
                 testDir.mkdir();
@@ -27,8 +29,10 @@ public class TestUtil {
         }
     }
 
-    public static File createFile(String directoryPath) throws Exception {
-        File file = new File(directoryPath + "/" + randomName());
+    public static File createFile(String directoryPath, Object object) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        File file = new File(directoryPath + "/file_" + randomName() + ".json");
+        mapper.writeValue(file, object);
         file.createNewFile();
         return file;
     }

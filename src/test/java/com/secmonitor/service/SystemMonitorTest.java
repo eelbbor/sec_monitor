@@ -1,21 +1,31 @@
 package com.secmonitor.service;
 
-import org.testng.Assert;
+import com.secmonitor.domain.DoorEvent;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import static com.secmonitor.TestUtil.createFile;
 import static com.secmonitor.TestUtil.makeTestDirectory;
-import static java.nio.file.StandardWatchEventKinds.*;
-import static org.mockito.Mockito.*;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
@@ -44,17 +54,17 @@ public class SystemMonitorTest {
 
     public void shouldDefaultOutputIntervalToOneSecondForNullInterval() throws Exception {
         createMonitor(null);
-        Assert.assertEquals(monitor.getMsOutputInterval(), 1000);
+        assertEquals(monitor.getMsOutputInterval(), 1000);
     }
 
     public void shouldDefaultOutputIntervalToOneSecondForZeroInterval() throws Exception {
         createMonitor(0L);
-        Assert.assertEquals(monitor.getMsOutputInterval(), 1000);
+        assertEquals(monitor.getMsOutputInterval(), 1000);
     }
 
     public void shouldDefaultOutputIntervalToOneSecondForNegativeInterval() throws Exception {
         createMonitor(-10L);
-        Assert.assertEquals(monitor.getMsOutputInterval(), 1000);
+        assertEquals(monitor.getMsOutputInterval(), 1000);
     }
 
     public void shouldIndicateValidWithANullKey() throws Exception {
@@ -64,7 +74,7 @@ public class SystemMonitorTest {
     public void shouldIndicateInvalidOnKeyReset() throws Exception {
         File file = null;
         try {
-            file = createFile(testDir.getPath());
+            file = createFile(testDir.getPath(), new DoorEvent(Calendar.getInstance().getTime().toString(), true));
             WatchEvent event = mockWatchEventForFile(file, ENTRY_CREATE);
             WatchKey key = mockWatchKeyForEvent(event);
             when(key.reset()).thenReturn(false);
@@ -78,7 +88,7 @@ public class SystemMonitorTest {
     public void shouldProcessCreateEvent() throws Exception {
         File file = null;
         try {
-            file = createFile(testDir.getPath());
+            file = createFile(testDir.getPath(), new DoorEvent(Calendar.getInstance().getTime().toString(), true));
             WatchEvent event = mockWatchEventForFile(file, ENTRY_CREATE);
             monitor.handleWatchEvents(mockWatchKeyForEvent(event));
             verify(event,times(1)).context();
@@ -90,7 +100,7 @@ public class SystemMonitorTest {
     public void shouldNotProcessNonCreateEvents() throws Exception {
         File file = null;
         try {
-            file = createFile(testDir.getPath());
+            file = createFile(testDir.getPath(), new DoorEvent(Calendar.getInstance().getTime().toString(), true));
             WatchEvent overflow = mockWatchEventForFile(file, OVERFLOW);
             WatchEvent delete = mockWatchEventForFile(file, ENTRY_DELETE);
             WatchEvent modify = mockWatchEventForFile(file, ENTRY_MODIFY);
@@ -104,7 +114,7 @@ public class SystemMonitorTest {
     private WatchEvent mockWatchEventForFile(File file, WatchEvent.Kind<?> eventKind) {
         WatchEvent event = mock(WatchEvent.class);
         when(event.kind()).thenReturn(eventKind);
-        when(event.context()).thenReturn(file.toPath());
+        when(event.context()).thenReturn(Paths.get(file.getName()));
         return event;
     }
 
