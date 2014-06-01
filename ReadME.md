@@ -11,10 +11,6 @@ To run the application from the command line execute:
 
 ```mvn clean compile exec:java```
 
-You can specify the directory to monitor by adding the following:
-
-```-Dexec.arguments="DIRECTORY_PATH"```
-
 ### Run the Tests
 To run all the tests from the command line execute:
 
