@@ -2,10 +2,7 @@ package com.secmonitor.factory;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.secmonitor.domain.AlarmEvent;
-import com.secmonitor.domain.DoorEvent;
-import com.secmonitor.domain.Event;
-import com.secmonitor.domain.ImgEvent;
+import com.secmonitor.domain.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,7 +50,7 @@ public class EventFactory {
 
         //ignore extra fields, refactoring discussion on logging unknown fields
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return (Event)mapper.convertValue(decoratedMap, typeClass);
+        return (Event) mapper.convertValue(decoratedMap, typeClass == null ? UnknownEvent.class : typeClass);
     }
 
     private Map<String, Object> decorateEventObjectMap(Map<String,Object> eventObjectMap) {

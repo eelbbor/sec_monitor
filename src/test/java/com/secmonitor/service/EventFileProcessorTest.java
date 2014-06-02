@@ -1,10 +1,7 @@
 package com.secmonitor.service;
 
 import com.secmonitor.TestUtil;
-import com.secmonitor.domain.AlarmEvent;
-import com.secmonitor.domain.DoorEvent;
-import com.secmonitor.domain.Event;
-import com.secmonitor.domain.ImgEvent;
+import com.secmonitor.domain.*;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
@@ -83,7 +80,7 @@ public class EventFileProcessorTest {
         validateStatus(0, 1, 0);
     }
 
-    public void shouldUpdateCountsBasedFilesProcessed() throws Exception {
+    public void shouldUpdateCountsBasedOnFilesProcessed() throws Exception {
         fileProcessor.processFile(createEventFile(getAlarmEvent()));
         fileProcessor.processFile(createEventFile(getAlarmEvent()));
         fileProcessor.processFile(createEventFile(getAlarmEvent()));
@@ -91,6 +88,35 @@ public class EventFileProcessorTest {
         fileProcessor.processFile(createEventFile(getDoorEvent()));
         fileProcessor.processFile(createEventFile(getImgEvent()));
         validateStatus(2, 1, 3);
+    }
+
+    public void shouldNotUpdateStatusValuesBasedOnEventWithoutType() throws Exception {
+        Event event = new Event() {
+            @Override
+            public String getType() {
+                return null;
+            }
+        };
+        fileProcessor.processFile(createEventFile(event));
+        fileProcessor.processFile(createEventFile(event));
+        fileProcessor.processFile(createEventFile(event));
+        validateStatus(0, 0, 0);
+    }
+
+    public void shouldNotUpdateStatusValuesBasedOnEventOfUnknownType() throws Exception {
+        UnknownEvent event = new UnknownEvent();
+        fileProcessor.processFile(createEventFile(event));
+        fileProcessor.processFile(createEventFile(event));
+        fileProcessor.processFile(createEventFile(event));
+        validateStatus(0, 0, 0);
+    }
+
+    public void shouldNotUpdateStatusValuesBasedOnEventOfUntrackableType() throws Exception {
+        UnknownEvent event = new UnknownEvent("someothertype",null);
+        fileProcessor.processFile(createEventFile(event));
+        fileProcessor.processFile(createEventFile(event));
+        fileProcessor.processFile(createEventFile(event));
+        validateStatus(0, 0, 0);
     }
 
     private File createEventFile(Event event) throws Exception {
@@ -112,7 +138,9 @@ public class EventFileProcessorTest {
     }
 
     private void validateStatus(int doorCnt, int imgCnt, int alarmCnt) {
-        String startValue = String.format("DoorCnt: %d, ImgCnt:%d, AlarmCnt:%d, avgProcessingTime: ", doorCnt, imgCnt, alarmCnt);
-        assertTrue(fileProcessor.getStatusMessage().startsWith(startValue));
+        int totalEventCnt = doorCnt + imgCnt + alarmCnt;
+        long avgTime = totalEventCnt > 0 ? fileProcessor.getProcessingTime() / totalEventCnt : 0;
+        String expectedStatus = String.format(EventFileProcessor.OUTPUT_FORMAT, doorCnt, imgCnt, alarmCnt, avgTime);
+        assertEquals(fileProcessor.getStatusMessage(), expectedStatus);
     }
 }

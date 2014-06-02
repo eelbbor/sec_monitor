@@ -47,26 +47,34 @@ public class SystemMonitor {
      * @throws IOException
      */
     public void startMonitor() {
-        //spawn a thread to ensure status is reported on the interval and is tolerant to event processing over time boundaries
-        new Thread(new StatusUpdateRunnable(processor, msOutputInterval)).start();
-        for (; ; ) {
-            WatchKey key;
-            try {
-                key = watcher.take();
-            } catch (InterruptedException x) {
-                return;
-            }
-
-            //handle any events that have occurred in the directory
-            try {
-                if (!handleWatchEvents(key)) {
-                    watcher.close();
-                    break;
+        StatusUpdateRunnable statusUpdateRunnable = new StatusUpdateRunnable(processor, msOutputInterval);
+        try {
+            //spawn a thread to ensure status is reported on the interval and is tolerant to event processing over time boundaries
+            new Thread(statusUpdateRunnable).start();
+            for (; ; ) {
+                WatchKey key;
+                try {
+                    key = watcher.take();
+                } catch (InterruptedException x) {
+                    return;
                 }
-            } catch (IOException e) {
-                //NOTE: real development should be logging as opposed to dumping to command line
-                System.out.println("ERROR: Failed to handle WatchEvents");
-                e.printStackTrace();
+
+                //handle any events that have occurred in the directory
+                try {
+                    if (!handleWatchEvents(key)) {
+                        watcher.close();
+                        break;
+                    }
+                } catch (IOException e) {
+                    //NOTE: real development should be logging as opposed to dumping to command line
+                    System.out.println("ERROR: Failed to handle WatchEvents");
+                    e.printStackTrace();
+                }
+            }
+        } finally {
+            //ensure the update thread is stopped
+            if(statusUpdateRunnable != null) {
+                statusUpdateRunnable.stop();
             }
         }
     }
@@ -97,6 +105,7 @@ public class SystemMonitor {
     private class StatusUpdateRunnable implements Runnable {
         private final long msOutputInterval;
         private EventFileProcessor processor;
+        private boolean stopProcessing = false;
 
         protected StatusUpdateRunnable(EventFileProcessor processor, long msOutputInterval) {
             this.processor = processor;
@@ -105,6 +114,10 @@ public class SystemMonitor {
 
         @Override
         public void run() {
+            if(stopProcessing) {
+                return;
+            }
+
             System.out.println(processor.getStatusMessage());
             try {
                 Thread.sleep(msOutputInterval);
@@ -112,6 +125,10 @@ public class SystemMonitor {
                 e.printStackTrace();
             }
             run();
+        }
+
+        public void stop() {
+            stopProcessing = true;
         }
     }
 }

@@ -8,12 +8,7 @@ import com.secmonitor.factory.EventFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * The EventFileProcessor creates events based off of files containing JSON data defining an Event.  The processor
@@ -25,19 +20,26 @@ public class EventFileProcessor {
 
     private long processingTime = 0;
     private EventFactory eventFactory;
-    private Map<String, List<Event>> eventMap;
+    public static final Set<String> TRACKABLE_EVENT_TYPES = new HashSet<String>(){
+        {
+            add(AlarmEvent.EVENT_TYPE);
+            add(DoorEvent.EVENT_TYPE);
+            add(ImgEvent.EVENT_TYPE);
+        }
+    };
 
+    private Map<String, List<Event>> eventMap;
     public EventFileProcessor() {
         eventFactory = new EventFactory();
         //create a synchronized map to handle access from multiple threads
         eventMap = Collections.synchronizedMap(new HashMap<String, List<Event>>());
-        eventMap.put(AlarmEvent.EVENT_TYPE, new ArrayList<Event>());
-        eventMap.put(DoorEvent.EVENT_TYPE, new ArrayList<Event>());
-        eventMap.put(ImgEvent.EVENT_TYPE, new ArrayList<Event>());
+        for(String eventType : TRACKABLE_EVENT_TYPES) {
+            eventMap.put(eventType, new ArrayList<Event>());
+        }
     }
 
     /**
-     * Processes and Event file and updates the status of the system with the data
+     * Processes an Event file and updates the status of the system with the data if it is a trackable event
      * @param file File containing JSON data defining and Event
      * @return Event that is defined in the JSON data in the file
      * @throws IOException
@@ -45,10 +47,12 @@ public class EventFileProcessor {
     public Event processFile(File file) throws IOException {
         long startTime = Calendar.getInstance().getTimeInMillis();
         Event event = eventFactory.newEventObject(file);
-        eventMap.get(event.getType()).add(event);
-
-        long elapsedTime = Calendar.getInstance().getTimeInMillis() - startTime;
-        setProcessingTime(getProcessingTime() + elapsedTime);
+        //
+        if(TRACKABLE_EVENT_TYPES.contains(event.getType())) {
+            eventMap.get(event.getType()).add(event);
+            long elapsedTime = Calendar.getInstance().getTimeInMillis() - startTime;
+            setProcessingTime(getProcessingTime() + elapsedTime);
+        }
         return event;
     }
 
@@ -69,7 +73,7 @@ public class EventFileProcessor {
                 avgProcessingTime);
     }
 
-    private synchronized long getProcessingTime() {
+    protected synchronized long getProcessingTime() {
         return processingTime;
     }
 

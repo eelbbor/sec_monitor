@@ -5,7 +5,9 @@ public class ImgEvent extends Event {
     private String bytes;
     private long size;
 
-    public ImgEvent() {}
+    public ImgEvent() {
+        super();
+    }
 
     public ImgEvent(String date, String bytes, long size) {
         super(date);

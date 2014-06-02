@@ -6,7 +6,9 @@ public class AlarmEvent extends Event {
     private String floor;
     private String room;
 
-    public AlarmEvent() {}
+    public AlarmEvent() {
+        super();
+    }
 
     public AlarmEvent(String date, String name, String floor, String room) {
         super(date);
