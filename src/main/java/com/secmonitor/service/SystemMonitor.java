@@ -50,7 +50,13 @@ public class SystemMonitor {
         //spawn a thread to ensure status is reported on the interval and is tolerant to event processing over time boundaries
         new Thread(new StatusUpdateRunnable(processor, msOutputInterval)).start();
         for (; ; ) {
-            WatchKey key = watcher.poll();
+            WatchKey key;
+            try {
+                key = watcher.take();
+            } catch (InterruptedException x) {
+                return;
+            }
+
             //handle any events that have occurred in the directory
             try {
                 if (!handleWatchEvents(key)) {
